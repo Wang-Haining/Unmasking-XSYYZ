@@ -39,13 +39,24 @@ xjpm_txt = text_handler(xjpm)
 xjpm_txt = xjpm_txt.replace(u'\u3000\u3000', '\n')
 xjpm_txt = xjpm_txt.replace(u'\u3000', '\n')
 
-# remove chapter markers
-ch_mark_set1 = re.findall(pattern=r"(第[一二三四五六七八九十]{1,3}回[ \n]{1,3}.{7,9}?[ \n]{1,3}.{7,9}?[ \n])",
+
+# 去除"XX品"
+ch_mark_set2 = re.findall(pattern=r"\s(游戏品|广仁品|广慧品|正法品|妙悟品|戒导品|正法品|净行品|庄严品|证入品|证人品|解脱品)\s",
                           string=xjpm_txt,
                           flags=re.S | re.M)
-
-for mark in ch_mark_set1:
+for mark in ch_mark_set2:
     xjpm_txt = xjpm_txt.replace(mark, "")
+
+xjpm_txt = xjpm_txt.replace(u'\n', '')
+xjpm_txt = xjpm_txt.replace(u' ', '')
+
+# remove chapter markers
+# ch_mark_set1 = re.findall(pattern=r"(第[一二三四五六七八九十]{1,3}回[ \n]{1,3}.{7,9}?[ \n]{1,3}.{7,9}?[ \n])",
+#                           string=xjpm_txt,
+#                           flags=re.S | re.M)
+#
+# for mark in ch_mark_set1:
+#     xjpm_txt = xjpm_txt.replace(mark, "")
 
 with open('/Users/hwang/Desktop/repo/Unmasking-XSYYZ/corpus/XJPM_1.txt', 'w', encoding='utf8') as f:
     f.write(xjpm_txt)
@@ -69,7 +80,58 @@ ch_mark_set1 = re.findall(pattern=r"(第[一二三四五六七八九十百]{1,3}
 for mark in ch_mark_set1:
     xsyyz_txt = xsyyz_txt.replace(mark, "")
 
+xsyyz_txt = xsyyz_txt.replace(u'\n', '')
+xsyyz_txt = xsyyz_txt.replace(u' ', '')
+
 with open('/Users/hwang/Desktop/repo/Unmasking-XSYYZ/corpus/XSYYZ_1.txt', 'w', encoding='utf8') as f:
     f.write(xsyyz_txt)
 # 《醒世姻缘传》处理结束
 
+
+# 《女聊斋》处理开始
+nlzzy = '/Users/hwang/Desktop/repo/Unmasking-XSYYZ/corpus/NLZZY.txt'
+nlzzy_txt = text_handler(nlzzy)
+nlzzy_txt = nlzzy_txt.replace(u'\u3000\u3000', '\n')
+nlzzy_txt = nlzzy_txt.replace(u'\u3000', '\n')
+nlzzy_txt = nlzzy_txt.replace(u'\n', '')
+nlzzy_txt = nlzzy_txt.replace(u' ', '')
+
+with open('/Users/hwang/Desktop/repo/Unmasking-XSYYZ/corpus/NLZZY_1.txt', 'w', encoding='utf8') as f:
+    f.write(nlzzy_txt)
+# 《女聊斋》处理结束
+
+
+# 《聊斋》处理开始
+lzzy = '/Users/hwang/Desktop/repo/Unmasking-XSYYZ/corpus/LZZY.txt'
+lzzy_txt = text_handler(lzzy)
+lzzy_txt = lzzy_txt.replace(u'\u3000\u3000', '\n')
+lzzy_txt = lzzy_txt.replace(u'\u3000', '\n')
+lzzy_txt = lzzy_txt.replace(u'\n', '')
+lzzy_txt = lzzy_txt.replace(u' ', '')
+lzzy_txt = lzzy_txt.replace(u'「', '“')
+lzzy_txt = lzzy_txt.replace(u'」', '”')
+lzzy_txt = lzzy_txt.replace(u'『', '“')
+lzzy_txt = lzzy_txt.replace(u'』', '”')
+
+
+with open('/Users/hwang/Desktop/repo/Unmasking-XSYYZ/corpus/LZZY_1.txt', 'w', encoding='utf8') as f:
+    f.write(lzzy_txt)
+# 《聊斋》处理结束
+
+
+# 《金瓶梅》处理开始
+jpm = '/Users/hwang/Desktop/repo/Unmasking-XSYYZ/corpus/JPM.txt'
+jpm_txt = text_handler(jpm)
+jpm_txt = lzzy_txt.replace(u'\u3000\u3000', '\n')
+jpm_txt = lzzy_txt.replace(u'\u3000', '\n')
+jpm_txt = lzzy_txt.replace(u'\n', '')
+jpm_txt = lzzy_txt.replace(u' ', '')
+jpm_txt = lzzy_txt.replace(u'「', '“')
+jpm_txt = lzzy_txt.replace(u'」', '”')
+jpm_txt = lzzy_txt.replace(u'『', '“')
+jpm_txt = lzzy_txt.replace(u'』', '”')
+
+
+with open('/Users/hwang/Desktop/repo/Unmasking-XSYYZ/corpus/JPM_1.txt', 'w', encoding='utf8') as f:
+    f.write(jpm_txt)
+# 《金瓶梅》处理结束
