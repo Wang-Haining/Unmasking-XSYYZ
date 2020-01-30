@@ -16,8 +16,10 @@ import re
 # number of features to be eliminated from each extreme (max/min +/-)
 NUMBER_ELIMINATE_FEATURES = 3
 NUMBER_ITERATIONS = 10
+# 考虑到原文是在英文基础上做的，中英文互译比例，中:英=1.5-2:1，这里chunk的长度应该更长一些
 CHUNK_LENGTH = 500
 INITIAL_FEATURE_SET_LENGTH = 250
+
 
 # BEST CONFIGURATIONS:
 # PAN12I, ELIMINATE = 3, ITERATIONS = 10
@@ -93,7 +95,6 @@ def curve_score(curve):
 
 
 class Database:
-
     """represents a database with texts of known authors"""
 
     def __init__(self):
@@ -115,7 +116,7 @@ class Database:
             raise Exception("Author unknown")
 
         for text in texts:
-            (self.texts[author]).append(text)    # text是个Text类的实例，texts是database的属性
+            (self.texts[author]).append(text)  # text是个Text类的实例，texts是database的属性
 
     def calc_initial_feature_set(self):
         """
@@ -128,7 +129,7 @@ class Database:
         """
         counter = Counter()
         for author in self.authors:
-            for text in self.texts[author]:   # 对于每一个text实例
+            for text in self.texts[author]:  # 对于每一个text实例
                 counter += Counter(text.tokens)  # profile-based计数
         # 这里Counter.most_common返回一个a list of tuple，外面加上dict()则变成一个dict
         # dict.keys()返回一个list
@@ -136,7 +137,6 @@ class Database:
 
 
 class Text:
-
     """represents a text"""
 
     def __init__(self, raw, name):
@@ -150,43 +150,100 @@ class Text:
 
         self.chunks = []  # containing all the chunks of n words, a list of lists
         self.selected_chunks = []  # contains a reduced number of chunks
-                                  # for having the same number of chunks
-                                  # for two text during calculations
+        # for having the same number of chunks
+        # for two text during calculations
+        # 之前这个tokens是词的意思，现在是中文一个字的意思，同character
         self.tokens = []
         self.sent_tokens = []
 
-        self.chunk_feature_frequencies = {}   # 这个属性似乎没用
+        self.chunk_feature_frequencies = {}  # 这个属性似乎没用
 
-    def subsample(text, scale):
+    # def subsample(text, scale):
+    #     """
+    #     Function:
+    #         Subsampling a text.
+    #         Require sent_tokenizer & word_tokenizer.
+    #     Input:
+    #         text:
+    #             a str, the text need to be performed subsampling.
+    #         scale:
+    #             a int, denotes how many words the subsampled chunk would no less than. (Because every sentence structure
+    #             should be intact.)
+    #     Output:
+    #         text:
+    #             a str, the subsampled chunk from input.
+    #     """
+    #     import random
+    #     subsampled_text = ''
+    #     sent_tokens = sent_tokenizer(text)
+    #     mark = random.randint(1, len(sent_tokens))
+    #     word_token_count = 0
+    #
+    #     while word_token_count < scale:
+    #         sub_text = sent_tokens[mark - 1]
+    #         subsampled_text = subsampled_text + " " + sub_text
+    #         word_token_count += len(word_tokenizer(sub_text))
+    #         mark += 1
+    #         if mark == len(sent_tokens):
+    #             mark = 1
+    #
+    #     return subsampled_text
+
+    # 重写 create_chunks—，为了1.贴合原文，二适应中文
+    def create_chunks_1(self):
         """
-        Function:
-            Subsampling a text.
-            Require sent_tokenizer & word_tokenizer.
-        Input:
-            text:
-                a str, the text need to be performed subsampling.
-            scale:
-                a int, denotes how many words the subsampled chunk would no less than. (Because every sentence structure
-                should be intact.)
-        Output:
-            text:
-                a str, the subsampled chunk from input.
+
         """
-        import random
-        subsampled_text = ''
-        sent_tokens = sent_tokenizer(text)
-        mark = random.randint(1, len(sent_tokens))
-        word_token_count = 0
+        global CHUNK_LENGTH
 
-        while word_token_count < scale:
-            sub_text = sent_tokens[mark - 1]
-            subsampled_text = subsampled_text + " " + sub_text
-            word_token_count += len(word_tokenizer(sub_text))
-            mark += 1
-            if mark == len(sent_tokens):
-                mark = 1
+        # get sentence/char tokens in Chinese
+        self.sent_tokens = sent_tokenizer_ch(self.raw)
+        self.tokens = char_tokenizer_ch()
 
-        return subsampled_text
+        sentCount = len(self.sent_tokens)
+        wordCount = len(self.tokens)
+        chuck = ''
+        for sent_token in self.sent_tokens:
+            check_point = 0
+            while check_point <= CHUNK_LENGTH:
+                check_point += len(char_tokenizer_ch(sent_token))
+                chuck += sent_token
+            self.chunks.append(chuck)
+        pass
+
+
+def play(sent_tokens):
+    chunks = []
+    i = 1
+    ceiling = len(sent_tokens)
+    word_count = 0
+    chunk = ''
+    while True:
+        for sent_token in sent_tokens[i-1:]:
+            i += 1
+            if word_count <= 500:
+                chunk += sent_token
+                word_count += len(char_tokenizer_ch(sent_token))
+            elif i == ceiling:
+                break
+            else:
+                chunks.append(chunk)
+                # print('a')
+                word_count = 0
+                chunk = ''
+        break
+    return chunks
+
+
+    #         chunk += sent_token
+    #         word_count += len(char_tokenizer_ch(sent_token))
+    #         i += 1
+    #         print(i)
+    #         if word_count >= 500 or i == ceiling:
+    #             chunks.append(chunk)
+    #             break
+    # return chunks
+    # x = play(sent_tokenizer_ch(xx))
 
 
     def create_chunks(self):
@@ -197,18 +254,18 @@ class Text:
         global CHUNK_LENGTH
 
         # 这几个text_to_list 功能会打破句子原有的结构
-        self.tokens = text_to_list(self.raw)   # tokenize（却掉了数字和标点）并转小写, a list
-        n = len(self.tokens)    # 计算有多少tokens
+        self.tokens = text_to_list(self.raw)  # tokenize（却掉了数字和标点）并转小写, a list
+        n = len(self.tokens)  # 计算有多少tokens
 
         if n < CHUNK_LENGTH:
             raise Exception("Text is too short")
 
-        chunk_endpoints = list(range(CHUNK_LENGTH, n + 1, CHUNK_LENGTH))    # 找到每个chunk的结束点
+        chunk_endpoints = list(range(CHUNK_LENGTH, n + 1, CHUNK_LENGTH))  # 找到每个chunk的结束点
         if n not in chunk_endpoints:
-            chunk_endpoints.append(n)    # 加入最后一个点做结束点，最后的步长未必是500
+            chunk_endpoints.append(n)  # 加入最后一个点做结束点，最后的步长未必是500
 
         for endpoint in chunk_endpoints:
-            self.chunks.append(self.tokens[endpoint - CHUNK_LENGTH:endpoint])    # 获得text.chunks，list of lists
+            self.chunks.append(self.tokens[endpoint - CHUNK_LENGTH:endpoint])  # 获得text.chunks，list of lists
 
 
 def tira(corpusdir, outputdir):
@@ -226,23 +283,22 @@ def tira(corpusdir, outputdir):
     # database.texts = {}
     # database.initial_feature_set = []
 
-    for candidate in jsonhandler.candidates:     # 对于每一个候选人???还可以这样？
-        database.add_author(candidate)       # database.authors = [cand1, cand2...]// database.texts = {author:[]...}
-        for training in jsonhandler.trainings[candidate]:    # 对于某个candidate的training text的文件名
-            logging.info(
-                "Reading training text '%s' of '%s'", training, candidate)
+    for candidate in jsonhandler.candidates:  # 对于每一个候选人???还可以这样？
+        database.add_author(candidate)  # database.authors = [cand1, cand2...]// database.texts = {author:[]...}
+        for training in jsonhandler.trainings[candidate]:  # 对于某个candidate的training text的文件名
+            logging.info("Reading training text '%s' of '%s'", training, candidate)
             text = Text(jsonhandler.getTrainingText(candidate, training),  # 创建Text实例 text(raw, name)
-                        candidate + " " + training)   # name类似于 "candidate00001 known00002.txt"
+                        candidate + " " + training)  # name类似于 "candidate00001 known00002.txt"
             try:
-                text.create_chunks()    # Text.chunks是一个list of lists（由许多chunks组成，每个chunk里是许许多多的tokens）
-                database.add_text(candidate, text)    # 为database实例加上texts属性 {candidate00001: [text, text,...]}
-                                                      # 此处的每个text都是一个Text类的实例
+                text.create_chunks()  # Text.chunks是一个list of lists（由许多chunks组成，每个chunk里是许许多多的tokens）
+                database.add_text(candidate, text)  # 为database实例加上texts属性 {candidate00001: [text, text,...]}
+                # 此处的每个text都是一个Text类的实例
             except:
                 # logging.info("Text size too small. Skip this text.")
                 logging.warning("Text too small. Exit.")
                 sys.exit()
     # 这里开始到特征了
-    database.calc_initial_feature_set()   # 找出了每个作者250个最高频的token
+    database.calc_initial_feature_set()  # 找出了每个作者250个最高频的token
 
     candidates = []  # this list shall contain the most likely candidates
 
@@ -251,18 +307,18 @@ def tira(corpusdir, outputdir):
     # runtime could surely be optimized
     for unknown in jsonhandler.unknowns:
         try:
-            results = {}    # dictionary containing the maximum difference (first and last iteration) for every author
+            results = {}  # dictionary containing the maximum difference (first and last iteration) for every author
 
             # load the unknown text and create the chunks which are used for the unmasking process
             unknown_text = Text(jsonhandler.getUnknownText(unknown), unknown)
-            unknown_text.create_chunks()   # 得到unknown_text.tokens (list) 和 .chunks (list of lists)
+            unknown_text.create_chunks()  # 得到unknown_text.tokens (list) 和 .chunks (list of lists)
 
             for candidate in jsonhandler.candidates:
                 results[candidate] = float("inf")
 
                 for known_text in database.texts[candidate]:
                     # reset the feature list, i.e. create a copy of the initial list
-                    features = list(database.initial_feature_set)    # 这个features是一个作者最常见的250个词
+                    features = list(database.initial_feature_set)  # 这个features是一个作者最常见的250个词
 
                     # randomly select equally many chunks from each text
                     select_chunks(unknown_text, known_text)
@@ -282,9 +338,6 @@ def tira(corpusdir, outputdir):
                     for i in range(0, NUMBER_ITERATIONS):
                         logging.info("Iteration #%s for texts '%s' and '%s'",
                                      str(i + 1), unknown, known_text.name)
-
-
-
 
                     # loop
                     global NUMBER_ITERATIONS
@@ -314,7 +367,7 @@ def tira(corpusdir, outputdir):
                         # (NUMBER_ELIMINATE_FEATURES) from each side.
                         # indices of maximum 3 values and minimum 3 values
                         delete = list(numpy.argsort(flist)[-NUMBER_ELIMINATE_FEATURES:]) \
-                            + list(numpy.argsort(flist)[:NUMBER_ELIMINATE_FEATURES])
+                                 + list(numpy.argsort(flist)[:NUMBER_ELIMINATE_FEATURES])
 
                         # We cannot directly use the delete list to eliminate from
                         # the features list since peu-a-peu elimination changes
@@ -365,6 +418,7 @@ def main():
     outputdir = args['o']
 
     tira(corpusdir, outputdir)
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.WARNING,

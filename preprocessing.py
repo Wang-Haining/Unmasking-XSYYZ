@@ -65,7 +65,7 @@ with open('/Users/hwang/Desktop/repo/Unmasking-XSYYZ/corpus/XJPM_1.txt', 'w', en
 
 
 # 《醒世姻缘传》处理开始
-xsyyz = '/Users/hwang/Desktop/repo/Unmasking-XSYYZ/corpus/XSYYZ.txt'
+xsyyz = '/Users/hwang/Desktop/repo/Unmasking-XSYYZ/unknown/XSYYZ.txt'
 xsyyz_txt = text_handler(xsyyz)
 
 # 再去掉全角空格

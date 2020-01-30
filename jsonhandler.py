@@ -77,7 +77,7 @@ trueAuthors = []
 
 def loadJson(corpus):
     global corpusdir, upath, candidates, unknowns, encoding, language
-    corpusdir += corpus   #这个corpus就是传入的corpusdir，一个小把戏
+    corpusdir += corpus   # 这个corpus就是传入的corpusdir，一个小把戏
     mfile = open(os.path.join(corpusdir, META_FNAME), "r")
     metajson = json.load(mfile)
     mfile.close()
@@ -99,13 +99,14 @@ def loadTraining():
             for doc in files:
                 trainings[cand].append(doc)
 
-# get training text 'fname' from candidate 'cand' (obtain values from
-# 'trainings', see example above)
+# get training text 'fname' from candidate 'cand' (obtain values from 'trainings', see example above)
 # 得到的结果如trainings = {'candidate00001': ['known00001.txt', 'known00002.txt'],
 #                        'candidate00002': ['known00001.txt', 'known00002.txt'],...
 #                        'candidate00014': ['known00001.txt', 'known00002.txt']}
 
-
+# ##########################################################################################################
+# 目前看到了这里
+# ##########################################################################################################
 
 def getTrainingText(cand, fname):
     dfile = codecs.open(os.path.join(corpusdir, cand, fname), "r", "utf-8")
@@ -113,8 +114,6 @@ def getTrainingText(cand, fname):
     dfile.close()
     return s
 
-# get training file as bytearray
-# 这个功能没用过
 
 def getTrainingBytes(cand, fname):
     dfile = open(os.path.join(corpusdir, cand, fname), "rb")
@@ -131,8 +130,6 @@ def getUnknownText(fname):
     dfile.close()
     return s
 
-# get unknown file as bytearray
-# 这个功能没用过
 
 def getUnknownBytes(fname):
     dfile = open(os.path.join(upath, fname), "rb")
