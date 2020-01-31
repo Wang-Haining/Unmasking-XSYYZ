@@ -100,7 +100,7 @@ class Database:
     def __init__(self):
         self.authors = []  # a list of strings with names of authors
         self.texts = {}  # a dictionary (name:Text) keys are cands names
-        self.initial_feature_set = []
+        self.features = []
 
     def add_author(self, *authors):
         for author in authors:
@@ -118,13 +118,11 @@ class Database:
         for text in texts:
             (self.texts[author]).append(text)  # text是个Text类的实例，texts是database的属性
 
-    def calc_initial_feature_set(self):
+    def feature_generator(self):
         """
         Calculate the initial feature set consisting of the most frequent
         INITIAL_FEATURE_SET_LENGTH (250) words
-
         for every text chunks have to be created beforehand
-
         feature set这里做tokens讲
         """
         counter = Counter()
@@ -133,7 +131,7 @@ class Database:
                 counter += Counter(text.tokens)  # profile-based计数
         # 这里Counter.most_common返回一个a list of tuple，外面加上dict()则变成一个dict
         # dict.keys()返回一个list
-        self.initial_feature_set = list(dict(counter.most_common(INITIAL_FEATURE_SET_LENGTH)).keys())
+        self.feature = list(dict(counter.most_common(INITIAL_FEATURE_SET_LENGTH)).keys())
 
 
 class Text:
@@ -190,82 +188,32 @@ class Text:
     #     return subsampled_text
 
     # 重写 create_chunks—，为了1.贴合原文，二适应中文
-    def create_chunks_1(self):
-        """
-
-        """
-        global CHUNK_LENGTH
-
-        # get sentence/char tokens in Chinese
-        self.sent_tokens = sent_tokenizer_ch(self.raw)
-        self.tokens = char_tokenizer_ch()
-
-        sentCount = len(self.sent_tokens)
-        wordCount = len(self.tokens)
-        chuck = ''
-        for sent_token in self.sent_tokens:
-            check_point = 0
-            while check_point <= CHUNK_LENGTH:
-                check_point += len(char_tokenizer_ch(sent_token))
-                chuck += sent_token
-            self.chunks.append(chuck)
-        pass
-
-
-def play(sent_tokens):
-    chunks = []
-    i = 1
-    ceiling = len(sent_tokens)
-    word_count = 0
-    chunk = ''
-    while True:
-        for sent_token in sent_tokens[i-1:]:
-            i += 1
-            if word_count <= 500:
-                chunk += sent_token
-                word_count += len(char_tokenizer_ch(sent_token))
-            elif i == ceiling:
-                break
-            else:
-                chunks.append(chunk)
-                # print('a')
-                word_count = 0
-                chunk = ''
-        break
-    return chunks
-
-
-    #         chunk += sent_token
-    #         word_count += len(char_tokenizer_ch(sent_token))
-    #         i += 1
-    #         print(i)
-    #         if word_count >= 500 or i == ceiling:
-    #             chunks.append(chunk)
-    #             break
-    # return chunks
-    # x = play(sent_tokenizer_ch(xx))
-
-
     def create_chunks(self):
         """
-        Create chunks of length CHUNK_LENGTH from the raw text. There might be
-        intersections between the ultimate and penultimate chunks.
+
         """
         global CHUNK_LENGTH
+        self.sent_tokens = sent_tokenizer_ch(self.raw)
+        # self.chuncks=[]在初始化时已经创建好了
+        ceiling = len(self.sent_tokens)
+        i = 1       # "i-1" denotes the index of the first sent_tokens of chunks
+        word_count = 0      # "word_count" used to count how many word in a chunk without breaking up sentence structure
+        chunk = ''      # "chunk" used to save sentence tokens
 
-        # 这几个text_to_list 功能会打破句子原有的结构
-        self.tokens = text_to_list(self.raw)  # tokenize（却掉了数字和标点）并转小写, a list
-        n = len(self.tokens)  # 计算有多少tokens
-
-        if n < CHUNK_LENGTH:
-            raise Exception("Text is too short")
-
-        chunk_endpoints = list(range(CHUNK_LENGTH, n + 1, CHUNK_LENGTH))  # 找到每个chunk的结束点
-        if n not in chunk_endpoints:
-            chunk_endpoints.append(n)  # 加入最后一个点做结束点，最后的步长未必是500
-
-        for endpoint in chunk_endpoints:
-            self.chunks.append(self.tokens[endpoint - CHUNK_LENGTH:endpoint])  # 获得text.chunks，list of lists
+        while True:
+            for sent_token in self.sent_tokens[i-1:]:
+                i += 1
+                if word_count <= 500:
+                    chunk += sent_token
+                    word_count += len(char_tokenizer_ch(sent_token))
+                elif i == ceiling:
+                    break
+                else:
+                    self.chunks.append(chunk)
+                    # print('a')
+                    word_count = 0
+                    chunk = ''
+            break
 
 
 def tira(corpusdir, outputdir):
@@ -281,7 +229,7 @@ def tira(corpusdir, outputdir):
     database = Database()
     # database.authors = []
     # database.texts = {}
-    # database.initial_feature_set = []
+    # database.features = []
 
     for candidate in jsonhandler.candidates:  # 对于每一个候选人???还可以这样？
         database.add_author(candidate)  # database.authors = [cand1, cand2...]// database.texts = {author:[]...}
@@ -298,7 +246,7 @@ def tira(corpusdir, outputdir):
                 logging.warning("Text too small. Exit.")
                 sys.exit()
     # 这里开始到特征了
-    database.calc_initial_feature_set()  # 找出了每个作者250个最高频的token
+    database.feature_generator()  # 找出了每个作者250个最高频的token
 
     candidates = []  # this list shall contain the most likely candidates
 
@@ -318,7 +266,7 @@ def tira(corpusdir, outputdir):
 
                 for known_text in database.texts[candidate]:
                     # reset the feature list, i.e. create a copy of the initial list
-                    features = list(database.initial_feature_set)  # 这个features是一个作者最常见的250个词
+                    features = list(database.features)  # 这个features是一个作者最常见的250个词
 
                     # randomly select equally many chunks from each text
                     select_chunks(unknown_text, known_text)
@@ -424,3 +372,65 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.WARNING,
                         format='%(asctime)s %(levelname)s: %(message)s')
     main()
+
+
+
+"""
+Some legacy scripts, saving for reference
+
+# def play(sent_tokens):
+#     chunks = []
+#     i = 1
+#     ceiling = len(sent_tokens)
+#     word_count = 0
+#     chunk = ''
+#     while True:
+#         for sent_token in sent_tokens[i-1:]:
+#             i += 1
+#             if word_count <= 500:
+#                 chunk += sent_token
+#                 word_count += len(char_tokenizer_ch(sent_token))
+#             elif i == ceiling:
+#                 break
+#             else:
+#                 chunks.append(chunk)
+#                 # print('a')
+#                 word_count = 0
+#                 chunk = ''
+#         break
+#     return chunks
+
+
+    #         chunk += sent_token
+    #         word_count += len(char_tokenizer_ch(sent_token))
+    #         i += 1
+    #         print(i)
+    #         if word_count >= 500 or i == ceiling:
+    #             chunks.append(chunk)
+    #             break
+    # return chunks
+    # x = play(sent_tokenizer_ch(xx))
+
+
+    def create_chunks(self):
+        """
+        Create chunks of length CHUNK_LENGTH from the raw text. There might be
+        intersections between the ultimate and penultimate chunks.
+        """
+        global CHUNK_LENGTH
+
+        # 这几个text_to_list 功能会打破句子原有的结构
+        self.tokens = text_to_list(self.raw)  # tokenize（却掉了数字和标点）并转小写, a list
+        n = len(self.tokens)  # 计算有多少tokens
+
+        if n < CHUNK_LENGTH:
+            raise Exception("Text is too short")
+
+        chunk_endpoints = list(range(CHUNK_LENGTH, n + 1, CHUNK_LENGTH))  # 找到每个chunk的结束点
+        if n not in chunk_endpoints:
+            chunk_endpoints.append(n)  # 加入最后一个点做结束点，最后的步长未必是500
+
+        for endpoint in chunk_endpoints:
+            self.chunks.append(self.tokens[endpoint - CHUNK_LENGTH:endpoint])  # 获得text.chunks，list of lists
+
+"""
