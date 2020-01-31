@@ -57,18 +57,13 @@ def char_tokenizer_ch(sent_tokens):
     return noPuncCharTokens
 
 
-def ngrams_tokenizer(char_tokens, n):
+def ngrams_tokenizer(tokens, n):
     """
     这里的list()可以去掉，那样直接给出一个闭包
-    注意：这里实际上打破了句子的结构，一个chuck里的所有文字都是首尾相接的，这样也许不好
+    注意：这里实际上打破了句子的结构，一个text里的所有文字都是首尾相接的，这样也许不好
+    但是也解释得通，古文实际上也没有标点
     """
-    return list(zip(*[char_tokens[i:] for i in range(n)]))
-
-
-def text_to_list(text):
-    # the following takes all alphabetic words normalized to lowercase
-    # from the raw data
-    return [x for x in [''.join(c for c in word if c.isalpha()).lower() for word in text.split()] if x != '']
+    return list(zip(*[tokens[i:] for i in range(n)]))
 
 
 def select_chunks(text1, text2):
@@ -125,13 +120,17 @@ class Database:
         for every text chunks have to be created beforehand
         feature set这里做tokens讲
         """
+        self.unigram =
+        self.bigram =
+
         counter = Counter()
         for author in self.authors:
             for text in self.texts[author]:  # 对于每一个text实例
                 counter += Counter(text.tokens)  # profile-based计数
         # 这里Counter.most_common返回一个a list of tuple，外面加上dict()则变成一个dict
         # dict.keys()返回一个list
-        self.feature = list(dict(counter.most_common(INITIAL_FEATURE_SET_LENGTH)).keys())
+        # 这里要做修改，100个高频1gram,200个高频2gram
+        self.features = list(dict(counter.most_common(INITIAL_FEATURE_SET_LENGTH)).keys())
 
 
 class Text:
@@ -153,47 +152,27 @@ class Text:
         # 之前这个tokens是词的意思，现在是中文一个字的意思，同character
         self.tokens = []
         self.sent_tokens = []
+        self.unigram = []
+        self.bigram = []
 
         self.chunk_feature_frequencies = {}  # 这个属性似乎没用
 
-    # def subsample(text, scale):
-    #     """
-    #     Function:
-    #         Subsampling a text.
-    #         Require sent_tokenizer & word_tokenizer.
-    #     Input:
-    #         text:
-    #             a str, the text need to be performed subsampling.
-    #         scale:
-    #             a int, denotes how many words the subsampled chunk would no less than. (Because every sentence structure
-    #             should be intact.)
-    #     Output:
-    #         text:
-    #             a str, the subsampled chunk from input.
-    #     """
-    #     import random
-    #     subsampled_text = ''
-    #     sent_tokens = sent_tokenizer(text)
-    #     mark = random.randint(1, len(sent_tokens))
-    #     word_token_count = 0
-    #
-    #     while word_token_count < scale:
-    #         sub_text = sent_tokens[mark - 1]
-    #         subsampled_text = subsampled_text + " " + sub_text
-    #         word_token_count += len(word_tokenizer(sub_text))
-    #         mark += 1
-    #         if mark == len(sent_tokens):
-    #             mark = 1
-    #
-    #     return subsampled_text
 
-    # 重写 create_chunks—，为了1.贴合原文，二适应中文
+    def create_ngrams(self):
+        """
+        This function should only be used after "create_chunks" function.
+        """
+        self.unigram = ngrams_tokenizer(self.tokens, 1)
+        self.bigram = ngrams_tokenizer(self.tokens, 2)
+        pass
+
     def create_chunks(self):
         """
 
         """
         global CHUNK_LENGTH
         self.sent_tokens = sent_tokenizer_ch(self.raw)
+        self.tokens = char_tokenizer_ch(self.sent_tokens)
         # self.chuncks=[]在初始化时已经创建好了
         ceiling = len(self.sent_tokens)
         i = 1       # "i-1" denotes the index of the first sent_tokens of chunks
@@ -432,5 +411,11 @@ Some legacy scripts, saving for reference
 
         for endpoint in chunk_endpoints:
             self.chunks.append(self.tokens[endpoint - CHUNK_LENGTH:endpoint])  # 获得text.chunks，list of lists
+            
+            
+    def text_to_list(text):
+    # the following takes all alphabetic words normalized to lowercase
+    # from the raw data
+    return [x for x in [''.join(c for c in word if c.isalpha()).lower() for word in text.split()] if x != '']
 
 """
