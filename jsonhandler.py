@@ -58,8 +58,9 @@ import json
 import codecs
 
 META_FNAME = "meta-file.json"
-OUT_FNAME = "answers.json"
-GT_FNAME = "ground-truth.json"
+ACCURACY_FNAME = "accuracy_score_decline.json"
+FEATURES_FNAME = "dropped_features.json"
+
 
 # always run this method first to evaluate the meta json file. Pass the
 # directory of the corpus (where meta-file.json is situated)
@@ -104,24 +105,12 @@ def loadTraining():
 #                        'candidate00002': ['known00001.txt', 'known00002.txt'],...
 #                        'candidate00014': ['known00001.txt', 'known00002.txt']}
 
-# ##########################################################################################################
-# 目前看到了这里
-# ##########################################################################################################
 
 def getTrainingText(cand, fname):
     dfile = codecs.open(os.path.join(corpusdir, cand, fname), "r", "utf-8")
     s = dfile.read()
     dfile.close()
     return s
-
-
-def getTrainingBytes(cand, fname):
-    dfile = open(os.path.join(corpusdir, cand, fname), "rb")
-    b = bytearray(dfile.read())
-    dfile.close()
-    return b
-
-# get unknown text 'fname' (obtain values from 'unknowns', see example above)
 
 
 def getUnknownText(fname):
@@ -131,40 +120,14 @@ def getUnknownText(fname):
     return s
 
 
-def getUnknownBytes(fname):
-    dfile = open(os.path.join(upath, fname), "rb")
-    b = bytearray(dfile.read())
-    dfile.close()
-    return b
-
-# run this method in the end to store the output in the 'path' directory as OUT_FNAME
-# pass a list of filenames (you can use 'unknowns'), a list of your
-# predicted authors and optionally a list of the scores (both must of
-# course be in the same order as the 'texts' list)
-
-
-def storeJson(path, texts, cands, scores=None):
-    answers = []
-    if scores == None:
-        scores = [1 for text in texts]
-    for i in range(len(texts)):
-        answers.append(
-            {"unknown_text": texts[i], "author": cands[i], "score": scores[i]})
-    f = open(os.path.join(path, OUT_FNAME), "w")
-    json.dump({"answers": answers}, f, indent=2)
+def storeJson(path, results, dropped_features):
+    f = open(os.path.join(path, ACCURACY_FNAME), "w")
+    json.dump(results, f)
+    f.close()
+    f = open(os.path.join(path, FEATURES_FNAME), "w")
+    json.dump(dropped_features, f)
     f.close()
 
-# if you want to evaluate your answers using the ground-truth.json, load
-# the true authors in 'trueAuthors' using this function
 
-
-def loadGroundTruth():
-    tfile = open(os.path.join(corpusdir, GT_FNAME), "r")
-    tjson = json.load(tfile)
-    tfile.close()
-
-    global trueauthors
-    for i in range(len(tjson["ground-truth"])):
-        trueAuthors.append(tjson["ground-truth"][i]["true-author"])
 
 
