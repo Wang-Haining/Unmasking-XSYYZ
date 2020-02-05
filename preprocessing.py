@@ -7,6 +7,7 @@ Created on Fri DEC 21 23:59:59 2019
 
 """
 import re
+from hanziconv import HanziConv
 
 def text_handler(file_name):
     lines = ''
@@ -24,16 +25,14 @@ def interceptor(text):
     # re.findall(pattern=r'【[\u4e00-\u9fa5]+[\w\W]{0,100}】', string=origin)
     comments = re.findall(r".*【(.*?)】.*", origin)
 
-
     gc_txt = gc_txt.replace(u'\u3000\u3000', '\n')
-
-
     return None
 
 
 # 《续金瓶梅》处理开始
 xjpm = '/Users/hwang/Desktop/repo/Unmasking-XSYYZ/corpus/XJPM.txt'
 xjpm_txt = text_handler(xjpm)
+
 
 # 再去掉全角空格
 xjpm_txt = xjpm_txt.replace(u'\u3000\u3000', '\n')
@@ -120,18 +119,59 @@ with open('/Users/hwang/Desktop/repo/Unmasking-XSYYZ/corpus/LZZY_1.txt', 'w', en
 
 
 # 《金瓶梅》处理开始
-jpm = '/Users/hwang/Desktop/repo/Unmasking-XSYYZ/corpus/JPM.txt'
+jpm = '/Users/hwang/Desktop/repo/Unmasking-XSYYZ/LanlingXiaoxiaosheng/JPM.txt'
 jpm_txt = text_handler(jpm)
-jpm_txt = lzzy_txt.replace(u'\u3000\u3000', '\n')
-jpm_txt = lzzy_txt.replace(u'\u3000', '\n')
-jpm_txt = lzzy_txt.replace(u'\n', '')
-jpm_txt = lzzy_txt.replace(u' ', '')
-jpm_txt = lzzy_txt.replace(u'「', '“')
-jpm_txt = lzzy_txt.replace(u'」', '”')
-jpm_txt = lzzy_txt.replace(u'『', '“')
-jpm_txt = lzzy_txt.replace(u'』', '”')
+jpm_txt = jpm_txt.replace(u'\u3000\u3000', '\n')
+jpm_txt = jpm_txt.replace(u'\u3000', '\n')
+jpm_txt = jpm_txt.replace(u'\n', '')
+jpm_txt = jpm_txt.replace(u' ', '')
+jpm_txt = jpm_txt.replace(u'「', '“')
+jpm_txt = jpm_txt.replace(u'」', '”')
+jpm_txt = jpm_txt.replace(u'『', '“')
+jpm_txt = jpm_txt.replace(u'』', '”')
 
 
-with open('/Users/hwang/Desktop/repo/Unmasking-XSYYZ/corpus/JPM_1.txt', 'w', encoding='utf8') as f:
+with open('/Users/hwang/Desktop/repo/Unmasking-XSYYZ/LanlingXiaoxiaosheng/JPM_1.txt', 'w', encoding='utf8') as f:
     f.write(jpm_txt)
 # 《金瓶梅》处理结束
+
+
+# 《天史》处理开始
+ts = '/Users/hwang/Desktop/repo/Unmasking-XSYYZ/reference/TS.txt'
+ts_txt = text_handler(ts)
+
+from hanziconv import HanziConv
+ts_txt = HanziConv.toSimplified(ts_txt)
+
+ts_txt = ts_txt.replace(u'\u3000\u3000', '\n')
+ts_txt = ts_txt.replace(u'\u3000', '\n')
+ts_txt = ts_txt.replace(u'\n', '')
+ts_txt = ts_txt.replace(u' ', '')
+ts_txt = ts_txt.replace(u'「', '“')
+ts_txt = ts_txt.replace(u'」', '”')
+ts_txt = ts_txt.replace(u'『', '“')
+ts_txt = ts_txt.replace(u'』', '”')
+
+with open('/Users/hwang/Desktop/repo/Unmasking-XSYYZ/reference/TS_1.txt', 'w', encoding='utf8') as f:
+    f.write(ts_txt)
+# 《天史》处理结束
+
+
+# 《木皮散人鼓词》处理开始
+mpsrgc = '/Users/hwang/Desktop/repo/Unmasking-XSYYZ/JiaYingchong/MPSRGC.txt'
+mpsrgc_txt = text_handler(mpsrgc)
+
+# mpsrgc_txt = HanziConv.toSimplified(mpsrgc_txt)
+
+mpsrgc_txt = mpsrgc_txt.replace(u'\u3000\u3000', '\n')
+mpsrgc_txt = mpsrgc_txt.replace(u'\u3000', '\n')
+mpsrgc_txt = mpsrgc_txt.replace(u'\n', '')
+mpsrgc_txt = mpsrgc_txt.replace(u' ', '')
+mpsrgc_txt = mpsrgc_txt.replace(u'「', '“')
+mpsrgc_txt = mpsrgc_txt.replace(u'」', '”')
+mpsrgc_txt = mpsrgc_txt.replace(u'『', '“')
+mpsrgc_txt = mpsrgc_txt.replace(u'』', '”')
+
+with open('/Users/hwang/Desktop/repo/Unmasking-XSYYZ/JiaYingchong/MPSRGC_1.txt', 'w', encoding='utf8') as f:
+    f.write(mpsrgc_txt)
+# 《木皮散人鼓词》处理结束
