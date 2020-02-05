@@ -5,11 +5,12 @@
 # BEST CONFIGURATIONS in Koppel07:
 # PAN12I, ELIMINATE = 3, ITERATIONS = 10
 
-# pwd = '/Users/hwang/Desktop/repo/Unmasking-XSYYZ'
+# a = '/Users/hwang/Desktop/repo/Unmasking-XSYYZ'
 
 import logging
 import argparse
 import jsonhandler
+from jsonhandler import *
 import sys
 from sklearn import svm
 import numpy as np
@@ -97,26 +98,31 @@ class Database:
             self.authors.append(author)
             self.texts[author] = []
 
-    def add_text(self, author, text):
+    def add_text(self, author, *texts):
         """
         Keyword arguments:
         author -- an author whose texts we want to add texts -- a list of texts of this author
         """
-        (self.texts[author]).append(text)  # text是个Text类的实例，texts是database的属性
+        for text in texts:
+            (self.texts[author]).append(text)  # text是个Text类的实例，texts是database的属性
 
-    def feature_generator(self, author):
+    def feature_generator(self):
         """
         Calculate the initial feature set consisting of the most frequent
         INITIAL_FEATURE_SET_LENGTH (250) words
         for every text chunks have to be created beforehand
         feature set这里做tokens讲
         """
-        self.features[author] = []
-
-        counter_unigram = Counter((self.texts[author][0]).unigram)
-        counter_bigram = Counter((self.texts[author][0]).bigram)
-        self.features[author].extend(list(dict(counter_unigram.most_common(INITIAL_FEATURE_SET_LENGTH_UNIGRAM)).keys()))
-        self.features[author].extend(list(dict(counter_bigram.most_common(INITIAL_FEATURE_SET_LENGTH_BIGRAM)).keys()))
+        for author in self.authors:
+            self.features[author] = []
+            for text in self.texts[author]:  # 对于每一个text实例
+                # counter += Counter(text.tokens)
+                counter_unigram = Counter((self.texts[author][0]).unigram)
+                counter_bigram = Counter((self.texts[author][0]).bigram)
+                self.features[author].extend(
+                    list(dict(counter_unigram.most_common(INITIAL_FEATURE_SET_LENGTH_UNIGRAM)).keys()))
+                self.features[author].extend(
+                    list(dict(counter_bigram.most_common(INITIAL_FEATURE_SET_LENGTH_BIGRAM)).keys()))
 
 
 class Text:
@@ -197,86 +203,82 @@ def heavy_lifter(corpusdir, outputdir):
                 text.chunks_generator()  # Text.chunks是一个list of lists（由许多chunks组成，每个chunk里是tokens列表）
                 text.ngrams_generator()  # 生成text实例的ngram
                 database.add_text(candidate, text)  # 为database实例加上texts属性 {candidate00001: [text, text,...]}
-                database.feature_generator(candidate)
 
             except:
                 # logging.info("Text size too small. Skip this text.")
                 logging.warning("Text too small. Exit.")
                 sys.exit()
+    database.feature_generator()
 
     # We use the unmasking procedure to compare all unknown texts to all
     # enumerated texts of known authorship and then decide which fit best.
     for unknown in jsonhandler.unknowns:
         results = {}  # dictionary containing the average ten folds accuracy score of each candidates
-        dropped_features = {}
+        # dropped_features = {}
         # load the unknown text and create the chunks which are used for the unmasking process
         unknown_text = Text(jsonhandler.getUnknownText(unknown), unknown)
         unknown_text.chunks_generator()  # 得到unknown_text.tokens (list) 和 .chunks (list of lists)
 
         for candidate in jsonhandler.candidates:
+            print(candidate)
             results[candidate] = []
-            dropped_features[candidate] = {}
+            # dropped_features[candidate] = {}
             features = (database.features[candidate]).copy()
             for known_text in database.texts[candidate]:
                 experiment_scores = []
                 # randomly select equally many chunks from each text
                 # 重复5次实验，每次都随机删掉多余的chunk
-                for experiment in range(0, 5):
-                    select_chunks(unknown_text, known_text)
-                    (dropped_features[candidate])[experiment] = []
-                    # create label vector
-                    # (0 for chunks of unknown texts, 1 for chunks of known texts)
-                    label = [0 for i in range(0, len(unknown_text.selected_chunks))] + [
-                        1 for i in range(0, len(known_text.selected_chunks))]
-                    label = np.array(label)
-                    # the reshape is necessary for the classifier
-                    label.reshape(len(unknown_text.selected_chunks) + len(known_text.selected_chunks), 1)
+                # for experiment in range(0, 5):
+                select_chunks(unknown_text, known_text)
+                # (dropped_features[candidate])[experiment] = []
+                # create label vector
+                # (0 for chunks of unknown texts, 1 for chunks of known texts)
+                label = [0 for i in range(0, len(unknown_text.selected_chunks))] + [
+                    1 for i in range(0, len(known_text.selected_chunks))]
+                label = np.array(label)
+                # the reshape is necessary for the classifier
+                label.reshape(len(unknown_text.selected_chunks) + len(known_text.selected_chunks), 1)
 
-                    # loop
-                    global NUMBER_ITERATIONS
-                    global FOLD_ELIMINATION
-                    fold_scores = []
+                global NUMBER_ITERATIONS, FOLD_ELIMINATION
+                fold_scores = []
 
-                    for i in range(0, NUMBER_ITERATIONS):
-                        logging.info("Iteration #%s for texts '%s' and '%s'",
-                                     str(i + 1), unknown, known_text.name)
-                        # 算250个高频词的词频，这里除以500是因为它没有原文处理，实际要更复杂些
-                        # matrix是ndarray: len(selected_chunks)*2行 * 250列 （sample个行，feature个列）
-                        matrix = [[chunk[0].count(token) / len(chunk2tokens(chunk[0])) for token in features]
-                                  for chunk in (unknown_text.selected_chunks + known_text.selected_chunks)]
-                        matrix = np.array(matrix)
+                for i in range(0, NUMBER_ITERATIONS):
+                    # logging.info("Iteration #%s for texts '%s' and '%s'",
+                    #              str(i + 1), unknown, known_text.name)
+                    matrix = [[chunk[0].count(token) / len(chunk2tokens(chunk[0])) for token in features]
+                              for chunk in (unknown_text.selected_chunks + known_text.selected_chunks)]
+                    matrix = np.array(matrix)
+                    print("这是", candidate, "的原矩阵", matrix)
 
-                        classifier = svm.LinearSVC()
-                        classifier.fit(matrix, label)
-                        fold_scores.append(classifier.score(matrix, label))
+                    classifier = svm.LinearSVC()
+                    classifier.fit(matrix, label)
+                    fold_scores.append(classifier.score(matrix, label))
 
-                        # a list of all feature weights
-                        weights = classifier.coef_[0]
+                    weights = classifier.coef_[0]
 
-                        # Now, we have to delete the strongest weighted features from each side.
-                        # indices of maximum/minimum ROUND_ELIMINATION values
-                        delete = list(np.argsort(weights)[-FOLD_ELIMINATION:]) \
-                                       + list(np.argsort(weights)[:FOLD_ELIMINATION])
+                    delete = list(np.argsort(weights)[-FOLD_ELIMINATION:]) \
+                                   + list(np.argsort(weights)[:FOLD_ELIMINATION])
 
-                        # We cannot directly use the delete list to eliminate from
-                        # the features list since peu-a-peu elimination changes the indices.
-                        delete_features = []
-                        for x in delete:
-                            delete_features.append(features[x])
-                        ((dropped_features[candidate])[experiment]).append(delete_features)
-                        logging.info("Delete %s", str(delete_features))
+                    # We cannot directly use the delete list to eliminate from
+                    # the features list since peu-a-peu elimination changes the indices.
+                    delete_features = []
+                    for x in delete:
+                        delete_features.append(features[x])
+                    # ((dropped_features[candidate])[experiment]).append(delete_features)
+                    # logging.info("Delete %s", str(delete_features))
 
-                        for feature in delete_features:
-                            if feature in features:
-                                features.remove(feature)
-                    experiment_scores.append(fold_scores)
-
-                experiment_scores = np.array(experiment_scores)
-                experiment_scores = np.mean(experiment_scores, axis=0)
+                    for feature in delete_features:
+                        if feature in features:
+                            features.remove(feature)
+                experiment_scores.append(fold_scores)
+                #
+                # experiment_scores = np.array(experiment_scores)
+                # experiment_scores = np.mean(experiment_scores, axis=0)
                 results[candidate] = experiment_scores
 
     # save everything in the specified directory
-    jsonhandler.storeJson(outputdir, results, dropped_features)
+    # jsonhandler.storeJson(outputdir, results, dropped_features)
+    jsonhandler.storeJson(outputdir, results)
 
 
 def main():

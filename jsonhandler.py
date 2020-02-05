@@ -78,7 +78,7 @@ trueAuthors = []
 
 def loadJson(corpus):
     global corpusdir, upath, candidates, unknowns, encoding, language
-    corpusdir += corpus   # 这个corpus就是传入的corpusdir，一个小把戏
+    corpusdir += corpus
     mfile = open(os.path.join(corpusdir, META_FNAME), "r")
     metajson = json.load(mfile)
     mfile.close()
